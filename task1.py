@@ -1,27 +1,49 @@
+import os
 import requests
 import matplotlib.pyplot as plt
+from dotenv import load_dotenv
 
-# Replace with your actual API key
-api_key = "open_weather_map_API_key"  # Make sure to replace this with your OpenWeatherMap API key
-cities = ["Mumbai", "Odisha", "Bangalore", "Delhi", "Pune"]  # List of Indian cities
-temperatures = []  # Empty list to store temperatures
+# Load API key from .env file
+load_dotenv()
+#Write API key
+api_key = os.getenv("OPENWEATHER_API_KEY","HERE WRITE API KYE")
+
+if not api_key:
+    raise ValueError("API key not found! Please set it in a .env file.")
+
+# List of famous Indian cities
+cities = ["Mumbai", "Delhi", "Bangalore", "Chennai", "Kolkata"]
+temperatures = []
 
 # Fetch weather data for each city
 for city in cities:
-    complete_url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}"
-    response = requests.get(complete_url)
-    data = response.json()
+    try:
+        complete_url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
+        response = requests.get(complete_url)
+        data = response.json()
 
-    if data["cod"] == 200:
-        main_data = data["main"]
-        temperature_celsius = main_data['temp'] - 273.15  # Convert from Kelvin to Celsius
-        temperatures.append(temperature_celsius)
-    else:
-        temperatures.append(None)  # In case the city is not found
+        if data.get("cod") == 200:
+            temperatures.append(data["main"]["temp"])
+        else:
+            print(f"Could not fetch data for {city}: {data.get('message', 'Unknown error')}")
+            temperatures.append(None)
+    except Exception as e:
+        print(f"Error fetching data for {city}: {e}")
+        temperatures.append(None)
 
 # Create a bar chart to visualize the temperatures
-plt.bar(cities, temperatures, color='blue')  # Bar chart with city names on x-axis and temperatures on y-axis
-plt.xlabel("Cities")  # Label for x-axis
-plt.ylabel("Temperature (°C)")  # Label for y-axis
-plt.title("Temperature in Different Cities in India")  # Title of the chart
-plt.show()  # Show the plot
+plt.figure(figsize=(8, 5))
+bars = plt.bar(cities, temperatures, color='skyblue')
+
+plt.xlabel("Cities")
+plt.ylabel("Temperature (°C)")
+plt.title("Temperature in Different Cities in India")
+plt.grid(axis="y", linestyle="--", alpha=0.7)
+
+# Adding temperature labels on top of bars
+for bar, temp in zip(bars, temperatures):
+    if temp is not None:
+        plt.text(bar.get_x() + bar.get_width()/2, bar.get_height(), f"{temp:.1f}°C",
+                 ha="center", va="bottom", fontsize=10, color="black")
+
+plt.show()
